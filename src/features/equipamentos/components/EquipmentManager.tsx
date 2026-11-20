@@ -4,7 +4,8 @@ import { useState } from "react";
 import EquipmentForm from "@/features/equipamentos/components/EquipmentForm";
 import EquipmentTable from "@/features/equipamentos/components/EquipmentTable";
 import EquipmentToolbar from "@/features/equipamentos/components/EquipmentToolbar";
-import { equipmentData } from "@/features/equipamentos/data/equipamentos-data";
+import { useAppData } from "@/components/providers/AppDataProvider";
+import { hasActiveLoanForEquipment } from "@/features/emprestimos/utils/loan-rules";
 import type {
   Equipment,
   EquipmentFormValues,
@@ -17,9 +18,13 @@ type EquipmentFormState =
   | null;
 
 export default function EquipmentManager() {
-  const [equipment, setEquipment] = useState<Equipment[]>(() => [
-    ...equipmentData,
-  ]);
+  const {
+    equipment,
+    loans,
+    createEquipment,
+    updateEquipment,
+    hasDuplicateAssetNumber,
+  } = useAppData();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | "Todos">(
     "Todos",
@@ -58,47 +63,24 @@ export default function EquipmentManager() {
     setStatusFilter("Todos");
   }
 
-  function hasDuplicateAssetNumber(assetNumber: string) {
-    const normalizedAssetNumber = assetNumber
-      .trim()
-      .toLocaleLowerCase("pt-BR");
-    const editingId =
-      formState?.mode === "edit" ? formState.equipment.id : null;
-
-    return equipment.some(
-      (item) =>
-        item.id !== editingId &&
-        item.assetNumber.trim().toLocaleLowerCase("pt-BR") ===
-          normalizedAssetNumber,
-    );
-  }
-
   function saveEquipment(values: EquipmentFormValues): string | null {
     if (!formState) {
       return null;
     }
 
-    if (hasDuplicateAssetNumber(values.assetNumber)) {
-      return "Já existe um equipamento com esse número de patrimônio.";
+    const result =
+      formState.mode === "edit"
+        ? updateEquipment(formState.equipment.id, values)
+        : createEquipment(values);
+    if (!result.ok) {
+      return result.error;
     }
 
-    if (formState.mode === "edit") {
-      setEquipment((currentEquipment) =>
-        currentEquipment.map((item) =>
-          item.id === formState.equipment.id
-            ? { ...item, ...values }
-            : item,
-        ),
-      );
-      setFeedback(`Equipamento "${values.name}" atualizado com sucesso.`);
-    } else {
-      setEquipment((currentEquipment) => [
-        ...currentEquipment,
-        { id: crypto.randomUUID(), ...values },
-      ]);
-      setFeedback(`Equipamento "${values.name}" cadastrado com sucesso.`);
-    }
-
+    setFeedback(
+      formState.mode === "edit"
+        ? `Equipamento "${values.name}" atualizado com sucesso.`
+        : `Equipamento "${values.name}" cadastrado com sucesso.`,
+    );
     closeForm();
     return null;
   }
@@ -149,7 +131,18 @@ export default function EquipmentManager() {
               ? formState.equipment.id
               : "new-equipment"
           }
-          isAssetNumberDuplicate={hasDuplicateAssetNumber}
+          isAssetNumberDuplicate={(assetNumber) =>
+            hasDuplicateAssetNumber(
+              assetNumber,
+              formState.mode === "edit"
+                ? formState.equipment.id
+                : undefined,
+            )
+          }
+          isStatusLocked={
+            formState.mode === "edit" &&
+            hasActiveLoanForEquipment(loans, formState.equipment.id)
+          }
           onCancel={closeForm}
           onSubmit={saveEquipment}
         />

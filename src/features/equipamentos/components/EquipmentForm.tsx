@@ -18,6 +18,7 @@ import type {
 type EquipmentFormProps = {
   initialEquipment: Equipment | null;
   isAssetNumberDuplicate: (assetNumber: string) => boolean;
+  isStatusLocked: boolean;
   onSubmit: (values: EquipmentFormValues) => string | null;
   onCancel: () => void;
 };
@@ -45,6 +46,7 @@ function getInitialValues(equipment: Equipment | null): EquipmentFormValues {
 export default function EquipmentForm({
   initialEquipment,
   isAssetNumberDuplicate,
+  isStatusLocked,
   onSubmit,
   onCancel,
 }: EquipmentFormProps) {
@@ -55,6 +57,12 @@ export default function EquipmentForm({
   const dialogRef = useRef<HTMLElement>(null);
   const onCancelRef = useRef(onCancel);
   const isEditing = initialEquipment !== null;
+  const statusDescription = [
+    formError?.field === "status" ? "equipment-form-error" : null,
+    isStatusLocked ? "equipment-status-locked-description" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   useEffect(() => {
     onCancelRef.current = onCancel;
@@ -329,7 +337,10 @@ export default function EquipmentForm({
                 Status
               </label>
               <select
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                aria-describedby={statusDescription || undefined}
+                aria-invalid={formError?.field === "status" || undefined}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
+                disabled={isStatusLocked}
                 id="equipment-status"
                 onChange={(event) => {
                   const selectedStatus = equipmentStatuses.find(
@@ -345,12 +356,6 @@ export default function EquipmentForm({
                     });
                   }
                 }}
-                aria-describedby={
-                  formError?.field === "status"
-                    ? "equipment-form-error"
-                    : undefined
-                }
-                aria-invalid={formError?.field === "status" || undefined}
                 value={values.status}
               >
                 {equipmentStatuses.map((status) => (
@@ -359,6 +364,15 @@ export default function EquipmentForm({
                   </option>
                 ))}
               </select>
+              {isStatusLocked && (
+                <p
+                  className="mt-1.5 text-xs text-slate-500"
+                  id="equipment-status-locked-description"
+                >
+                  O status não pode ser alterado enquanto houver empréstimo
+                  ativo.
+                </p>
+              )}
             </div>
           </div>
 

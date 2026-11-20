@@ -4,7 +4,7 @@ import { useState } from "react";
 import CollaboratorForm from "@/features/colaboradores/components/CollaboratorForm";
 import CollaboratorTable from "@/features/colaboradores/components/CollaboratorTable";
 import CollaboratorToolbar from "@/features/colaboradores/components/CollaboratorToolbar";
-import { collaboratorData } from "@/features/colaboradores/data/colaboradores-data";
+import { useAppData } from "@/components/providers/AppDataProvider";
 import type {
   Collaborator,
   CollaboratorFormValues,
@@ -17,9 +17,12 @@ type CollaboratorFormState =
   | null;
 
 export default function CollaboratorManager() {
-  const [collaborators, setCollaborators] = useState<Collaborator[]>(() => [
-    ...collaboratorData,
-  ]);
+  const {
+    collaborators,
+    createCollaborator,
+    updateCollaborator,
+    hasDuplicateRegistration,
+  } = useAppData();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     CollaboratorStatus | "Todos"
@@ -61,22 +64,6 @@ export default function CollaboratorManager() {
     setStatusFilter("Todos");
   }
 
-  function hasDuplicateRegistration(registrationNumber: string) {
-    const normalizedRegistration = registrationNumber
-      .trim()
-      .toLocaleLowerCase("pt-BR");
-    const editingId =
-      formState?.mode === "edit" ? formState.collaborator.id : null;
-
-    return collaborators.some(
-      (collaborator) =>
-        collaborator.id !== editingId &&
-        collaborator.registrationNumber
-          .trim()
-          .toLocaleLowerCase("pt-BR") === normalizedRegistration,
-    );
-  }
-
   function saveCollaborator(
     values: CollaboratorFormValues,
   ): string | null {
@@ -84,27 +71,19 @@ export default function CollaboratorManager() {
       return null;
     }
 
-    if (hasDuplicateRegistration(values.registrationNumber)) {
-      return "Já existe um colaborador com essa matrícula.";
+    const result =
+      formState.mode === "edit"
+        ? updateCollaborator(formState.collaborator.id, values)
+        : createCollaborator(values);
+    if (!result.ok) {
+      return result.error;
     }
 
-    if (formState.mode === "edit") {
-      setCollaborators((currentCollaborators) =>
-        currentCollaborators.map((collaborator) =>
-          collaborator.id === formState.collaborator.id
-            ? { ...collaborator, ...values }
-            : collaborator,
-        ),
-      );
-      setFeedback(`Colaborador "${values.name}" atualizado com sucesso.`);
-    } else {
-      setCollaborators((currentCollaborators) => [
-        ...currentCollaborators,
-        { id: crypto.randomUUID(), ...values },
-      ]);
-      setFeedback(`Colaborador "${values.name}" cadastrado com sucesso.`);
-    }
-
+    setFeedback(
+      formState.mode === "edit"
+        ? `Colaborador "${values.name}" atualizado com sucesso.`
+        : `Colaborador "${values.name}" cadastrado com sucesso.`,
+    );
     closeForm();
     return null;
   }
@@ -150,7 +129,14 @@ export default function CollaboratorManager() {
           initialCollaborator={
             formState.mode === "edit" ? formState.collaborator : null
           }
-          isRegistrationDuplicate={hasDuplicateRegistration}
+          isRegistrationDuplicate={(registrationNumber) =>
+            hasDuplicateRegistration(
+              registrationNumber,
+              formState.mode === "edit"
+                ? formState.collaborator.id
+                : undefined,
+            )
+          }
           key={
             formState.mode === "edit"
               ? formState.collaborator.id
