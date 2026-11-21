@@ -3,6 +3,7 @@ import type { Equipment } from "@/features/equipamentos/types";
 import type {
   Loan,
   LoanCreationValues,
+  LoanDates,
   LoanDisplayStatus,
 } from "@/features/emprestimos/types";
 
@@ -40,12 +41,37 @@ export function isActiveLoan(
   return loan.status === "Em andamento";
 }
 
+export function getLoanDates(loanDate = getLocalDateString()): LoanDates {
+  const [year, month, day] = loanDate.split("-").map(Number);
+  const expectedReturn = new Date(0);
+  expectedReturn.setHours(12, 0, 0, 0);
+  expectedReturn.setFullYear(year, month - 1, day + 14);
+
+  return {
+    loanDate,
+    expectedReturnDate: getLocalDateString(expectedReturn),
+  };
+}
+
 export function hasActiveLoanForEquipment(
   loans: readonly Loan[],
   equipmentId: string,
 ): boolean {
   return loans.some(
     (loan) => loan.equipmentId === equipmentId && isActiveLoan(loan),
+  );
+}
+
+export function hasOverdueLoanForCollaborator(
+  loans: readonly Loan[],
+  collaboratorId: string,
+  today: string,
+): boolean {
+  return loans.some(
+    (loan) =>
+      loan.collaboratorId === collaboratorId &&
+      isActiveLoan(loan) &&
+      loan.expectedReturnDate < today,
   );
 }
 
@@ -65,16 +91,13 @@ export function validateLoanCreation(
   collaborator: Collaborator | undefined,
   loans: readonly Loan[],
   values: LoanCreationValues,
+  today: string,
 ): string | null {
   if (!equipment) {
     return "Selecione um equipamento válido.";
   }
 
   if (equipment.status !== "Disponível") {
-    if (equipment.status === "Manutenção") {
-      return "Equipamentos em manutenção não podem ser emprestados.";
-    }
-
     if (equipment.status === "Emprestado") {
       return "Esse equipamento já está emprestado.";
     }
@@ -94,15 +117,8 @@ export function validateLoanCreation(
     return "Somente colaboradores ativos podem receber empréstimos.";
   }
 
-  if (
-    !isValidLocalDate(values.loanDate) ||
-    !isValidLocalDate(values.expectedReturnDate)
-  ) {
-    return "Informe datas válidas para o empréstimo.";
-  }
-
-  if (values.expectedReturnDate < values.loanDate) {
-    return "A data prevista para devolução não pode ser anterior à data do empréstimo.";
+  if (hasOverdueLoanForCollaborator(loans, collaborator.id, today)) {
+    return "O colaborador possui um empréstimo atrasado e não pode receber outro equipamento.";
   }
 
   return null;

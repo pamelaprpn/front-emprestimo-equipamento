@@ -11,6 +11,7 @@ import { equipmentData } from "../../features/equipamentos/data/equipamentos-dat
 import type {
   Loan,
   LoanCreationValues,
+  LoanDates,
 } from "../../features/emprestimos/types";
 import { loanData } from "../../features/emprestimos/data/emprestimos-data";
 import {
@@ -58,6 +59,8 @@ export type CreateLoanAction = {
   type: "create-loan";
   id: string;
   values: LoanCreationValues;
+  today: string;
+  dates: LoanDates;
 };
 
 export type ReturnLoanAction = {
@@ -124,26 +127,30 @@ function hasDuplicateRegistration(
   );
 }
 
+function hasDuplicateEmail(
+  state: AppDataState,
+  email: string,
+  excludedId?: string,
+): boolean {
+  const normalizedEmail = normalizeIdentifier(email);
+  return state.collaborators.some(
+    (collaborator) =>
+      collaborator.id !== excludedId &&
+      normalizeIdentifier(collaborator.email) === normalizedEmail,
+  );
+}
+
 function transitionCreateEquipment(
   state: AppDataState,
   action: CreateEquipmentAction,
 ): AppDataTransition<Equipment> {
-  const normalizedValues = {
+  const normalizedValues: EquipmentFormValues = {
     ...action.values,
     name: action.values.name.trim(),
     assetNumber: action.values.assetNumber.trim(),
     category: action.values.category.trim(),
+    status: "Disponível",
   };
-
-  if (normalizedValues.status === "Emprestado") {
-    return {
-      state,
-      result: {
-        ok: false,
-        error: "Equipamentos não podem ser cadastrados com status Emprestado.",
-      },
-    };
-  }
 
   if (hasDuplicateAssetNumber(state, normalizedValues.assetNumber)) {
     return {
@@ -278,6 +285,16 @@ function transitionCreateCollaborator(
     };
   }
 
+  if (hasDuplicateEmail(state, normalizedValues.email)) {
+    return {
+      state,
+      result: {
+        ok: false,
+        error: "Já existe um colaborador com esse e-mail.",
+      },
+    };
+  }
+
   if (!isValidEmail(normalizedValues.email)) {
     return {
       state,
@@ -338,6 +355,16 @@ function transitionUpdateCollaborator(
     };
   }
 
+  if (hasDuplicateEmail(state, normalizedValues.email, action.id)) {
+    return {
+      state,
+      result: {
+        ok: false,
+        error: "Já existe um colaborador com esse e-mail.",
+      },
+    };
+  }
+
   if (!isValidEmail(normalizedValues.email)) {
     return {
       state,
@@ -376,6 +403,7 @@ function transitionCreateLoan(
     selectedCollaborator,
     state.loans,
     action.values,
+    action.today,
   );
 
   if (validationError) {
@@ -385,6 +413,7 @@ function transitionCreateLoan(
   const createdLoan: Loan = {
     id: action.id,
     ...action.values,
+    ...action.dates,
     actualReturnDate: null,
     status: "Em andamento",
   };

@@ -10,6 +10,8 @@ type LoanDetails = {
   expectedReturnDate: string;
 };
 
+export type LoanDates = Pick<LoanDetails, "loanDate" | "expectedReturnDate">;
+
 export type Loan =
   | (LoanDetails & {
       actualReturnDate: null;
@@ -22,5 +24,5 @@ export type Loan =
 
 export type LoanCreationValues = Pick<
   LoanDetails,
-  "equipmentId" | "collaboratorId" | "loanDate" | "expectedReturnDate"
+  "equipmentId" | "collaboratorId"
 >;

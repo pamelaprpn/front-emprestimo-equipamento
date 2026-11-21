@@ -39,7 +39,7 @@ function getInitialValues(equipment: Equipment | null): EquipmentFormValues {
     name: "",
     assetNumber: "",
     category: equipmentCategories[0],
-    status: equipmentStatuses[0],
+    status: "Disponível",
   };
 }
 
@@ -330,48 +330,64 @@ export default function EquipmentForm({
             </div>
 
             <div>
-              <label
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-                htmlFor="equipment-status"
-              >
-                Status
-              </label>
-              <select
-                aria-describedby={statusDescription || undefined}
-                aria-invalid={formError?.field === "status" || undefined}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
-                disabled={isStatusLocked}
-                id="equipment-status"
-                onChange={(event) => {
-                  const selectedStatus = equipmentStatuses.find(
-                    (status) => status === event.target.value,
-                  );
-                  if (selectedStatus) {
-                    updateField("status", selectedStatus);
-                  } else {
-                    setFormError({
-                      field: "status",
-                      kind: "invalid",
-                      message: "Selecione um status válido.",
-                    });
-                  }
-                }}
-                value={values.status}
-              >
-                {equipmentStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-              {isStatusLocked && (
-                <p
-                  className="mt-1.5 text-xs text-slate-500"
-                  id="equipment-status-locked-description"
-                >
-                  O status não pode ser alterado enquanto houver empréstimo
-                  ativo.
-                </p>
+              {isEditing ? (
+                <>
+                  <label
+                    className="mb-1.5 block text-sm font-medium text-slate-700"
+                    htmlFor="equipment-status"
+                  >
+                    Status
+                  </label>
+                  <select
+                    aria-describedby={statusDescription || undefined}
+                    aria-invalid={formError?.field === "status" || undefined}
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
+                    disabled={isStatusLocked}
+                    id="equipment-status"
+                    onChange={(event) => {
+                      const selectedStatus = equipmentStatuses.find(
+                        (status) => status === event.target.value,
+                      );
+                      if (selectedStatus) {
+                        updateField("status", selectedStatus);
+                      } else {
+                        setFormError({
+                          field: "status",
+                          kind: "invalid",
+                          message: "Selecione um status válido.",
+                        });
+                      }
+                    }}
+                    value={values.status}
+                  >
+                    {equipmentStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                  {isStatusLocked && (
+                    <p
+                      className="mt-1.5 text-xs text-slate-500"
+                      id="equipment-status-locked-description"
+                    >
+                      O status não pode ser alterado enquanto houver empréstimo
+                      ativo.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Status inicial
+                  </span>
+                  <p
+                    className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700"
+                    aria-describedby={statusDescription || undefined}
+                  >
+                    Disponível
+                  </p>
+                </>
               )}
             </div>
           </div>

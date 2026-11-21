@@ -3,7 +3,6 @@ import type { Equipment, EquipmentStatus } from "../types";
 export const equipmentStatuses = [
   "Disponível",
   "Emprestado",
-  "Manutenção",
 ] satisfies readonly EquipmentStatus[];
 
 export const equipmentCategories = [
@@ -34,7 +33,7 @@ export const equipmentData = [
     name: "Projetor Epson PowerLite",
     assetNumber: "PAT-0003",
     category: "Projetor",
-    status: "Manutenção",
+    status: "Disponível",
   },
   {
     id: "equipment-004",

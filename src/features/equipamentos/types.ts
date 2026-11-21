@@ -1,4 +1,4 @@
-export type EquipmentStatus = "Disponível" | "Emprestado" | "Manutenção";
+export type EquipmentStatus = "Disponível" | "Emprestado";
 
 export type Equipment = {
   id: string;

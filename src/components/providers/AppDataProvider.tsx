@@ -16,7 +16,10 @@ import type {
   EquipmentFormValues,
 } from "@/features/equipamentos/types";
 import type { Loan, LoanCreationValues } from "@/features/emprestimos/types";
-import { getLocalDateString } from "@/features/emprestimos/utils/loan-rules";
+import {
+  getLocalDateString,
+  getLoanDates,
+} from "@/features/emprestimos/utils/loan-rules";
 import {
   appDataReducer,
   createInitialAppDataState,
@@ -47,6 +50,7 @@ type AppDataContextValue = {
     registrationNumber: string,
     excludedId?: string,
   ) => boolean;
+  hasDuplicateEmail: (email: string, excludedId?: string) => boolean;
   createEquipment: (
     values: EquipmentFormValues,
   ) => OperationResult<Equipment>;
@@ -117,6 +121,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  function hasDuplicateEmail(email: string, excludedId?: string): boolean {
+    const normalizedEmail = normalizeIdentifier(email);
+    return currentStateRef.current.collaborators.some(
+      (collaborator) =>
+        collaborator.id !== excludedId &&
+        normalizeIdentifier(collaborator.email) === normalizedEmail,
+    );
+  }
+
   function createEquipment(
     values: EquipmentFormValues,
   ): OperationResult<Equipment> {
@@ -180,10 +193,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }
 
   function createLoan(values: LoanCreationValues): OperationResult<Loan> {
+    const today = getLocalDateString();
     const action = {
       type: "create-loan",
       id: crypto.randomUUID(),
       values: { ...values },
+      today,
+      dates: getLoanDates(today),
     } satisfies CreateLoanAction;
 
     return commitAction(
@@ -211,6 +227,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     loans: state.loans,
     hasDuplicateAssetNumber,
     hasDuplicateRegistration,
+    hasDuplicateEmail,
     createEquipment,
     updateEquipment,
     createCollaborator,

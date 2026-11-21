@@ -8,7 +8,6 @@ import {
 } from "react";
 import type { Collaborator } from "@/features/colaboradores/types";
 import type { Equipment } from "@/features/equipamentos/types";
-import { getLocalDateString } from "@/features/emprestimos/utils/loan-rules";
 import type { LoanCreationValues } from "@/features/emprestimos/types";
 
 type LoanFormProps = {
@@ -20,7 +19,7 @@ type LoanFormProps = {
 
 type LoanFormError = {
   field: keyof LoanCreationValues | "form";
-  kind: "date-order" | "operation" | "required";
+  kind: "operation" | "required";
   message: string;
 };
 
@@ -28,8 +27,6 @@ function getInitialValues(): LoanCreationValues {
   return {
     equipmentId: "",
     collaboratorId: "",
-    loanDate: getLocalDateString(),
-    expectedReturnDate: "",
   };
 }
 
@@ -124,13 +121,6 @@ export default function LoanForm({
         return null;
       }
 
-      if (
-        currentError.kind === "date-order" &&
-        (field === "loanDate" || field === "expectedReturnDate")
-      ) {
-        return null;
-      }
-
       if (currentError.field === field && currentError.kind === "required") {
         return value.trim() ? null : currentError;
       }
@@ -146,8 +136,6 @@ export default function LoanForm({
       ...values,
       equipmentId: values.equipmentId.trim(),
       collaboratorId: values.collaboratorId.trim(),
-      loanDate: values.loanDate.trim(),
-      expectedReturnDate: values.expectedReturnDate.trim(),
     };
     const requiredFields = [
       {
@@ -160,16 +148,6 @@ export default function LoanForm({
         label: "Colaborador",
         value: normalizedValues.collaboratorId,
       },
-      {
-        field: "loanDate",
-        label: "Data do empréstimo",
-        value: normalizedValues.loanDate,
-      },
-      {
-        field: "expectedReturnDate",
-        label: "Data prevista para devolução",
-        value: normalizedValues.expectedReturnDate,
-      },
     ] as const;
     const emptyField = requiredFields.find(({ value }) => !value);
 
@@ -178,18 +156,6 @@ export default function LoanForm({
         field: emptyField.field,
         kind: "required",
         message: `Preencha o campo obrigatório: ${emptyField.label}.`,
-      });
-      return;
-    }
-
-    if (
-      normalizedValues.expectedReturnDate < normalizedValues.loanDate
-    ) {
-      setFormError({
-        field: "expectedReturnDate",
-        kind: "date-order",
-        message:
-          "A data prevista para devolução não pode ser anterior à data do empréstimo.",
       });
       return;
     }
@@ -239,7 +205,8 @@ export default function LoanForm({
               className="mt-1 text-sm text-slate-500"
               id="loan-form-description"
             >
-              Informe o equipamento, o colaborador e as datas do empréstimo.
+              Informe o equipamento e o colaborador. As datas serão definidas
+              automaticamente.
             </p>
           </div>
           <button
@@ -334,59 +301,6 @@ export default function LoanForm({
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-                htmlFor="loan-date"
-              >
-                Data do empréstimo
-              </label>
-              <input
-                aria-describedby={
-                  formError?.field === "loanDate"
-                    ? "loan-form-error"
-                    : undefined
-                }
-                aria-invalid={formError?.field === "loanDate" || undefined}
-                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                id="loan-date"
-                onChange={(event) => updateField("loanDate", event.target.value)}
-                required
-                type="date"
-                value={values.loanDate}
-              />
-            </div>
-
-            <div>
-              <label
-                className="mb-1.5 block text-sm font-medium text-slate-700"
-                htmlFor="loan-expected-return-date"
-              >
-                Devolução prevista
-              </label>
-              <input
-                aria-describedby={
-                  formError?.field === "expectedReturnDate"
-                    ? "loan-form-error"
-                    : undefined
-                }
-                aria-invalid={
-                  formError?.field === "expectedReturnDate" || undefined
-                }
-                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                id="loan-expected-return-date"
-                min={values.loanDate || undefined}
-                onChange={(event) =>
-                  updateField("expectedReturnDate", event.target.value)
-                }
-                required
-                type="date"
-                value={values.expectedReturnDate}
-              />
-            </div>
           </div>
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">

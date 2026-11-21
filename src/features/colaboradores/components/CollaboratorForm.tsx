@@ -15,13 +15,14 @@ import type {
 type CollaboratorFormProps = {
   initialCollaborator: Collaborator | null;
   isRegistrationDuplicate: (registrationNumber: string) => boolean;
+  isEmailDuplicate: (email: string) => boolean;
   onSubmit: (values: CollaboratorFormValues) => string | null;
   onCancel: () => void;
 };
 
 type CollaboratorFormError = {
-  field: keyof CollaboratorFormValues;
-  kind: "duplicate" | "email" | "invalid" | "required";
+  field: keyof CollaboratorFormValues | "form";
+  kind: "duplicate" | "email" | "invalid" | "operation" | "required";
   message: string;
 };
 
@@ -63,6 +64,7 @@ function getInitialValues(
 export default function CollaboratorForm({
   initialCollaborator,
   isRegistrationDuplicate,
+  isEmailDuplicate,
   onSubmit,
   onCancel,
 }: CollaboratorFormProps) {
@@ -143,7 +145,15 @@ export default function CollaboratorForm({
   ) {
     setValues((currentValues) => ({ ...currentValues, [field]: value }));
     setFormError((currentError) => {
-      if (!currentError || currentError.field !== field) {
+      if (!currentError) {
+        return currentError;
+      }
+
+      if (currentError.field === "form") {
+        return null;
+      }
+
+      if (currentError.field !== field) {
         return currentError;
       }
 
@@ -154,6 +164,10 @@ export default function CollaboratorForm({
         field === "registrationNumber"
       ) {
         return isRegistrationDuplicate(fieldValue) ? currentError : null;
+      }
+
+      if (currentError.kind === "duplicate" && field === "email") {
+        return isEmailDuplicate(fieldValue) ? currentError : null;
       }
 
       if (currentError.kind === "required") {
@@ -213,12 +227,32 @@ export default function CollaboratorForm({
       return;
     }
 
+    if (
+      isRegistrationDuplicate(normalizedValues.registrationNumber)
+    ) {
+      setFormError({
+        field: "registrationNumber",
+        kind: "duplicate",
+        message: "Já existe um colaborador com essa matrícula.",
+      });
+      return;
+    }
+
+    if (isEmailDuplicate(normalizedValues.email)) {
+      setFormError({
+        field: "email",
+        kind: "duplicate",
+        message: "Já existe um colaborador com esse e-mail.",
+      });
+      return;
+    }
+
     const submissionError = onSubmit(normalizedValues);
     setFormError(
       submissionError
         ? {
-            field: "registrationNumber",
-            kind: "duplicate",
+            field: "form",
+            kind: "operation",
             message: submissionError,
           }
         : null,

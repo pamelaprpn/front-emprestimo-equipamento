@@ -18,7 +18,6 @@ type EquipmentTableProps = {
 const statusVariants: Record<EquipmentStatus, StatusBadgeVariant> = {
   Disponível: "success",
   Emprestado: "neutral",
-  Manutenção: "warning",
 };
 
 export default function EquipmentTable({

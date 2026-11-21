@@ -22,6 +22,7 @@ export default function CollaboratorManager() {
     createCollaborator,
     updateCollaborator,
     hasDuplicateRegistration,
+    hasDuplicateEmail,
   } = useAppData();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -132,6 +133,14 @@ export default function CollaboratorManager() {
           isRegistrationDuplicate={(registrationNumber) =>
             hasDuplicateRegistration(
               registrationNumber,
+              formState.mode === "edit"
+                ? formState.collaborator.id
+                : undefined,
+            )
+          }
+          isEmailDuplicate={(email) =>
+            hasDuplicateEmail(
+              email,
               formState.mode === "edit"
                 ? formState.collaborator.id
                 : undefined,
