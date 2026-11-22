@@ -10,11 +10,20 @@ import type { Collaborator } from "@/features/colaboradores/types";
 import type { Equipment } from "@/features/equipamentos/types";
 import type { LoanCreationValues } from "@/features/emprestimos/types";
 
+type LoanFormCollaborator = Pick<Collaborator, "id" | "name"> & {
+  email?: string;
+  registrationNumber?: string;
+};
+
 type LoanFormProps = {
   equipment: readonly Readonly<Equipment>[];
-  collaborators: readonly Readonly<Collaborator>[];
-  onSubmit: (values: LoanCreationValues) => string | null;
+  collaborators: readonly Readonly<LoanFormCollaborator>[];
+  onSubmit: (
+    values: LoanCreationValues,
+  ) => string | null | Promise<string | null>;
   onCancel: () => void;
+  collaboratorEmptyLabel?: string;
+  isSubmitting?: boolean;
 };
 
 type LoanFormError = {
@@ -35,15 +44,23 @@ export default function LoanForm({
   collaborators,
   onSubmit,
   onCancel,
+  collaboratorEmptyLabel = "Nenhum colaborador ativo",
+  isSubmitting = false,
 }: LoanFormProps) {
   const [values, setValues] = useState<LoanCreationValues>(getInitialValues);
   const [formError, setFormError] = useState<LoanFormError | null>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const onCancelRef = useRef(onCancel);
+  const submissionInProgressRef = useRef(false);
+  const isSubmittingRef = useRef(isSubmitting);
 
   useEffect(() => {
     onCancelRef.current = onCancel;
   }, [onCancel]);
+
+  useEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
 
   useEffect(() => {
     const previouslyFocusedElement =
@@ -67,7 +84,12 @@ export default function LoanForm({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCancelRef.current();
+        if (
+          !isSubmittingRef.current &&
+          !submissionInProgressRef.current
+        ) {
+          onCancelRef.current();
+        }
         return;
       }
 
@@ -132,6 +154,10 @@ export default function LoanForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (isSubmitting || submissionInProgressRef.current) {
+      return;
+    }
+
     const normalizedValues: LoanCreationValues = {
       ...values,
       equipmentId: values.equipmentId.trim(),
@@ -160,21 +186,57 @@ export default function LoanForm({
       return;
     }
 
-    const submissionError = onSubmit(normalizedValues);
+    const submissionResult = onSubmit(normalizedValues);
+    if (submissionResult instanceof Promise) {
+      submissionInProgressRef.current = true;
+      void submissionResult
+        .then((submissionError) => {
+          setFormError(
+            submissionError
+              ? {
+                  field: "form",
+                  kind: "operation",
+                  message: submissionError,
+                }
+              : null,
+          );
+        })
+        .catch((error: unknown) => {
+          setFormError({
+            field: "form",
+            kind: "operation",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Não foi possível registrar o empréstimo.",
+          });
+        })
+        .finally(() => {
+          submissionInProgressRef.current = false;
+        });
+      return;
+    }
+
     setFormError(
-      submissionError
+      submissionResult
         ? {
             field: "form",
             kind: "operation",
-            message: submissionError,
+            message: submissionResult,
           }
         : null,
     );
   }
 
+  function handleCancel() {
+    if (!isSubmitting && !submissionInProgressRef.current) {
+      onCancel();
+    }
+  }
+
   function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) {
-      onCancel();
+      handleCancel();
     }
   }
 
@@ -211,8 +273,9 @@ export default function LoanForm({
           </div>
           <button
             aria-label="Fechar formulário"
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-            onClick={onCancel}
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={handleCancel}
             type="button"
           >
             <X aria-hidden="true" size={18} />
@@ -246,7 +309,7 @@ export default function LoanForm({
               aria-invalid={formError?.field === "equipmentId" || undefined}
               className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-50 disabled:text-slate-500"
               data-dialog-initial-focus
-              disabled={equipment.length === 0}
+              disabled={isSubmitting || equipment.length === 0}
               id="loan-equipment"
               onChange={(event) =>
                 updateField("equipmentId", event.target.value)
@@ -282,7 +345,7 @@ export default function LoanForm({
               }
               aria-invalid={formError?.field === "collaboratorId" || undefined}
               className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-50 disabled:text-slate-500"
-              disabled={collaborators.length === 0}
+              disabled={isSubmitting || collaborators.length === 0}
               id="loan-collaborator"
               onChange={(event) =>
                 updateField("collaboratorId", event.target.value)
@@ -292,12 +355,14 @@ export default function LoanForm({
             >
               <option value="">
                 {collaborators.length === 0
-                  ? "Nenhum colaborador ativo"
+                  ? collaboratorEmptyLabel
                   : "Selecione um colaborador"}
               </option>
               {collaborators.map((collaborator) => (
                 <option key={collaborator.id} value={collaborator.id}>
-                  {collaborator.name} — {collaborator.registrationNumber}
+                  {collaborator.name}
+                  {(collaborator.registrationNumber || collaborator.email) &&
+                    ` — ${collaborator.registrationNumber || collaborator.email}`}
                 </option>
               ))}
             </select>
@@ -305,17 +370,19 @@ export default function LoanForm({
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <button
-              className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-              onClick={onCancel}
+              className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+              onClick={handleCancel}
               type="button"
             >
               Cancelar
             </button>
             <button
-              className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
               type="submit"
             >
-              Registrar empréstimo
+              {isSubmitting ? "Registrando..." : "Registrar empréstimo"}
             </button>
           </div>
         </form>

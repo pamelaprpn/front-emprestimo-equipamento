@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ApiLoanManager from "@/features/emprestimos/components/ApiLoanManager";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import type { LoanCreationValues } from "@/features/emprestimos/types";
 import { getLoanDisplayStatus } from "@/features/emprestimos/utils/loan-rules";
@@ -12,8 +13,17 @@ import LoanTable, {
 import LoanToolbar, {
   type LoanStatusFilter,
 } from "@/features/emprestimos/components/LoanToolbar";
+import { loanDataSource } from "@/features/emprestimos/config/loan-data-source";
 
 export default function LoanManager() {
+  return loanDataSource === "api" ? (
+    <ApiLoanManager />
+  ) : (
+    <LocalLoanManager />
+  );
+}
+
+function LocalLoanManager() {
   const {
     loans,
     equipment,

@@ -10,4 +10,8 @@ export type Collaborator = {
   status: CollaboratorStatus;
 };
 
+export type ApiCollaborator = Pick<Collaborator, "id" | "name" | "email"> & {
+  cargo: string;
+};
+
 export type CollaboratorFormValues = Omit<Collaborator, "id">;

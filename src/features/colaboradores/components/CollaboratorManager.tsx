@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import ApiCollaboratorManager from "@/features/colaboradores/components/ApiCollaboratorManager";
 import CollaboratorForm from "@/features/colaboradores/components/CollaboratorForm";
 import CollaboratorTable from "@/features/colaboradores/components/CollaboratorTable";
 import CollaboratorToolbar from "@/features/colaboradores/components/CollaboratorToolbar";
+import { collaboratorDataSource } from "@/features/colaboradores/config/collaborator-data-source";
 import { useAppData } from "@/components/providers/AppDataProvider";
 import type {
   Collaborator,
@@ -17,6 +19,14 @@ type CollaboratorFormState =
   | null;
 
 export default function CollaboratorManager() {
+  return collaboratorDataSource === "api" ? (
+    <ApiCollaboratorManager />
+  ) : (
+    <LocalCollaboratorManager />
+  );
+}
+
+function LocalCollaboratorManager() {
   const {
     collaborators,
     createCollaborator,

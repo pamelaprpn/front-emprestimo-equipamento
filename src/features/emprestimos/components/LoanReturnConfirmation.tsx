@@ -7,6 +7,7 @@ type LoanReturnConfirmationProps = {
   error: string | null;
   onConfirm: () => void;
   onCancel: () => void;
+  isPending?: boolean;
 };
 
 export default function LoanReturnConfirmation({
@@ -15,13 +16,25 @@ export default function LoanReturnConfirmation({
   error,
   onConfirm,
   onCancel,
+  isPending = false,
 }: LoanReturnConfirmationProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const onCancelRef = useRef(onCancel);
+  const isPendingRef = useRef(isPending);
 
   useEffect(() => {
     onCancelRef.current = onCancel;
   }, [onCancel]);
+
+  useEffect(() => {
+    isPendingRef.current = isPending;
+  }, [isPending]);
+
+  function handleCancel() {
+    if (!isPending) {
+      onCancel();
+    }
+  }
 
   useEffect(() => {
     const previouslyFocusedElement =
@@ -41,7 +54,9 @@ export default function LoanReturnConfirmation({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCancelRef.current();
+        if (!isPendingRef.current) {
+          onCancelRef.current();
+        }
         return;
       }
 
@@ -82,8 +97,8 @@ export default function LoanReturnConfirmation({
   }, []);
 
   function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
-    if (event.target === event.currentTarget) {
-      onCancel();
+    if (event.target === event.currentTarget && !isPending) {
+      handleCancel();
     }
   }
 
@@ -120,8 +135,9 @@ export default function LoanReturnConfirmation({
           </div>
           <button
             aria-label="Cancelar devolução"
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-            onClick={onCancel}
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending}
+            onClick={handleCancel}
             type="button"
           >
             <X aria-hidden="true" size={18} />
@@ -140,19 +156,21 @@ export default function LoanReturnConfirmation({
 
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
-            className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
             data-dialog-initial-focus
-            onClick={onCancel}
+            disabled={isPending}
+            onClick={handleCancel}
             type="button"
           >
             Cancelar
           </button>
           <button
-            className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending}
             onClick={onConfirm}
             type="button"
           >
-            Confirmar devolução
+            {isPending ? "Registrando devolução..." : "Confirmar devolução"}
           </button>
         </div>
       </section>

@@ -15,7 +15,7 @@ type LoanToolbarProps = {
   status: LoanStatusFilter;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: LoanStatusFilter) => void;
-  onNewLoan: () => void;
+  onNewLoan?: () => void;
 };
 
 function isLoanStatusFilter(value: string): value is LoanStatusFilter {
@@ -82,14 +82,16 @@ export default function LoanToolbar({
         </select>
       </div>
 
-      <button
-        className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-        onClick={onNewLoan}
-        type="button"
-      >
-        <Plus aria-hidden="true" size={17} />
-        Novo empréstimo
-      </button>
+      {onNewLoan && (
+        <button
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          onClick={onNewLoan}
+          type="button"
+        >
+          <Plus aria-hidden="true" size={17} />
+          Novo empréstimo
+        </button>
+      )}
     </div>
   );
 }

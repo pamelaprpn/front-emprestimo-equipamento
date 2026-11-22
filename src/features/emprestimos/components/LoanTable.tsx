@@ -19,7 +19,7 @@ type LoanTableProps = {
   loans: readonly LoanTableItem[];
   isFiltered: boolean;
   onClearFilters: () => void;
-  onReturn: (loan: LoanTableItem) => void;
+  onReturn?: (loan: LoanTableItem) => void;
 };
 
 const statusVariants: Record<LoanDisplayStatus, StatusBadgeVariant> = {
@@ -96,9 +96,11 @@ export default function LoanTable({
               <th className="px-5 py-3.5" scope="col">
                 Status
               </th>
-              <th className="px-5 py-3.5 text-right" scope="col">
-                Ação
-              </th>
+              {onReturn && (
+                <th className="px-5 py-3.5 text-right" scope="col">
+                  Ação
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -131,20 +133,22 @@ export default function LoanTable({
                     {loan.status}
                   </StatusBadge>
                 </td>
-                <td className="px-5 py-4 text-right">
-                  {loan.canReturn ? (
-                    <button
-                      aria-label={`Registrar devolução de ${loan.equipmentName}`}
-                      className="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                      onClick={() => onReturn(loan)}
-                      type="button"
-                    >
-                      Registrar devolução
-                    </button>
-                  ) : (
-                    <span className="text-slate-400">—</span>
-                  )}
-                </td>
+                {onReturn && (
+                  <td className="px-5 py-4 text-right">
+                    {loan.canReturn ? (
+                      <button
+                        aria-label={`Registrar devolução de ${loan.equipmentName}`}
+                        className="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                        onClick={() => onReturn(loan)}
+                        type="button"
+                      >
+                        Registrar devolução
+                      </button>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

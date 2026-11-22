@@ -22,6 +22,15 @@ export type Loan =
       status: "Devolvido";
     });
 
+export type ApiLoan = {
+  id: string;
+  equipmentId: string;
+  collaboratorId: string;
+  loanDate: string;
+  expectedReturnDate: string;
+  actualReturnDate: string | null;
+};
+
 export type LoanCreationValues = Pick<
   LoanDetails,
   "equipmentId" | "collaboratorId"
