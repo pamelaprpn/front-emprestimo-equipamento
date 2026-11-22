@@ -1,4 +1,4 @@
-import { PackageOpen, Pencil } from "lucide-react";
+import { PackageOpen, Pencil, Trash2 } from "lucide-react";
 import StatusBadge, {
   type StatusBadgeVariant,
 } from "@/components/ui/StatusBadge";
@@ -11,6 +11,7 @@ type EquipmentTableProps = {
   equipment: readonly Equipment[];
   isFiltered: boolean;
   onEdit?: (equipment: Equipment) => void;
+  onDelete?: (equipment: Equipment) => void;
   onAddEquipment?: () => void;
   onClearFilters: () => void;
   readOnly?: boolean;
@@ -25,6 +26,7 @@ export default function EquipmentTable({
   equipment,
   isFiltered,
   onEdit,
+  onDelete,
   onAddEquipment,
   onClearFilters,
   readOnly = false,
@@ -110,16 +112,28 @@ export default function EquipmentTable({
                 </td>
                 {!readOnly && (
                   <td className="px-5 py-4 text-right">
-                    {onEdit && (
-                      <button
-                        aria-label={`Editar ${item.name}`}
-                        className="inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-                        onClick={() => onEdit(item)}
-                        type="button"
-                      >
-                        <Pencil aria-hidden="true" size={16} />
-                      </button>
-                    )}
+                    <div className="flex justify-end gap-1">
+                      {onEdit && (
+                        <button
+                          aria-label={`Editar ${item.name}`}
+                          className="inline-flex size-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                          onClick={() => onEdit(item)}
+                          type="button"
+                        >
+                          <Pencil aria-hidden="true" size={16} />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          aria-label={`Excluir ${item.name}`}
+                          className="inline-flex size-9 items-center justify-center rounded-lg text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
+                          onClick={() => onDelete(item)}
+                          type="button"
+                        >
+                          <Trash2 aria-hidden="true" size={16} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

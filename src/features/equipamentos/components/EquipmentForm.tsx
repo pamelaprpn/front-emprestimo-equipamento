@@ -17,15 +17,21 @@ import type {
 
 type EquipmentFormProps = {
   initialEquipment: Equipment | null;
-  isAssetNumberDuplicate: (assetNumber: string) => boolean;
+  isAssetNumberDuplicate?: (assetNumber: string) => boolean;
   isStatusLocked: boolean;
-  onSubmit: (values: EquipmentFormValues) => string | null;
+  onSubmit: (
+    values: EquipmentFormValues,
+  ) => string | null | Promise<string | null>;
   onCancel: () => void;
+  categoryOptions?: readonly string[];
+  isSubmitting?: boolean;
+  isAssetNumberReadOnly?: boolean;
+  isStatusEditable?: boolean;
 };
 
 type EquipmentFormError = {
-  field: keyof EquipmentFormValues;
-  kind: "duplicate" | "invalid" | "required";
+  field: keyof EquipmentFormValues | "form";
+  kind: "duplicate" | "invalid" | "operation" | "required";
   message: string;
 };
 
@@ -45,10 +51,14 @@ function getInitialValues(equipment: Equipment | null): EquipmentFormValues {
 
 export default function EquipmentForm({
   initialEquipment,
-  isAssetNumberDuplicate,
+  isAssetNumberDuplicate = () => false,
   isStatusLocked,
   onSubmit,
   onCancel,
+  categoryOptions = equipmentCategories,
+  isSubmitting = false,
+  isAssetNumberReadOnly = false,
+  isStatusEditable = true,
 }: EquipmentFormProps) {
   const [values, setValues] = useState<EquipmentFormValues>(() =>
     getInitialValues(initialEquipment),
@@ -56,6 +66,7 @@ export default function EquipmentForm({
   const [formError, setFormError] = useState<EquipmentFormError | null>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const onCancelRef = useRef(onCancel);
+  const submissionInProgressRef = useRef(false);
   const isEditing = initialEquipment !== null;
   const statusDescription = [
     formError?.field === "status" ? "equipment-form-error" : null,
@@ -86,7 +97,9 @@ export default function EquipmentForm({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCancelRef.current();
+        if (!submissionInProgressRef.current) {
+          onCancelRef.current();
+        }
         return;
       }
 
@@ -132,7 +145,15 @@ export default function EquipmentForm({
   ) {
     setValues((currentValues) => ({ ...currentValues, [field]: value }));
     setFormError((currentError) => {
-      if (!currentError || currentError.field !== field) {
+      if (!currentError) {
+        return currentError;
+      }
+
+      if (currentError.field === "form") {
+        return null;
+      }
+
+      if (currentError.field !== field) {
         return currentError;
       }
 
@@ -150,6 +171,10 @@ export default function EquipmentForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isSubmitting || submissionInProgressRef.current) {
+      return;
+    }
 
     const normalizedValues = {
       ...values,
@@ -182,13 +207,41 @@ export default function EquipmentForm({
       return;
     }
 
-    const submissionError = onSubmit(normalizedValues);
+    const submissionResult = onSubmit(normalizedValues);
+    if (submissionResult instanceof Promise) {
+      submissionInProgressRef.current = true;
+      void submissionResult
+        .then((submissionError) => {
+          if (submissionError) {
+            setFormError({
+              field: "form",
+              kind: "operation",
+              message: submissionError,
+            });
+          }
+        })
+        .catch((error: unknown) => {
+          setFormError({
+            field: "form",
+            kind: "operation",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Não foi possível cadastrar o equipamento.",
+          });
+        })
+        .finally(() => {
+          submissionInProgressRef.current = false;
+        });
+      return;
+    }
+
     setFormError(
-      submissionError
+      submissionResult
         ? {
             field: "assetNumber",
             kind: "duplicate",
-            message: submissionError,
+            message: submissionResult,
           }
         : null,
     );
@@ -196,6 +249,12 @@ export default function EquipmentForm({
 
   function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) {
+      handleCancel();
+    }
+  }
+
+  function handleCancel() {
+    if (!isSubmitting && !submissionInProgressRef.current) {
       onCancel();
     }
   }
@@ -232,8 +291,9 @@ export default function EquipmentForm({
           </div>
           <button
             aria-label="Fechar formulário"
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-            onClick={onCancel}
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={handleCancel}
             type="button"
           >
             <X aria-hidden="true" size={18} />
@@ -288,11 +348,12 @@ export default function EquipmentForm({
                   : undefined
               }
               aria-invalid={formError?.field === "assetNumber" || undefined}
-              className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              className={`h-11 w-full rounded-xl border border-slate-300 px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200${isAssetNumberReadOnly ? " bg-slate-50 text-slate-500" : ""}`}
               id="equipment-asset-number"
               onChange={(event) =>
                 updateField("assetNumber", event.target.value)
               }
+              readOnly={isAssetNumberReadOnly}
               required
               value={values.assetNumber}
             />
@@ -321,7 +382,7 @@ export default function EquipmentForm({
                 required
                 value={values.category}
               >
-                {equipmentCategories.map((category) => (
+                {categoryOptions.map((category) => (
                   <option key={category} value={category}>
                     {category}
                   </option>
@@ -332,48 +393,63 @@ export default function EquipmentForm({
             <div>
               {isEditing ? (
                 <>
-                  <label
-                    className="mb-1.5 block text-sm font-medium text-slate-700"
-                    htmlFor="equipment-status"
-                  >
-                    Status
-                  </label>
-                  <select
-                    aria-describedby={statusDescription || undefined}
-                    aria-invalid={formError?.field === "status" || undefined}
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
-                    disabled={isStatusLocked}
-                    id="equipment-status"
-                    onChange={(event) => {
-                      const selectedStatus = equipmentStatuses.find(
-                        (status) => status === event.target.value,
-                      );
-                      if (selectedStatus) {
-                        updateField("status", selectedStatus);
-                      } else {
-                        setFormError({
-                          field: "status",
-                          kind: "invalid",
-                          message: "Selecione um status válido.",
-                        });
-                      }
-                    }}
-                    value={values.status}
-                  >
-                    {equipmentStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                  {isStatusLocked && (
-                    <p
-                      className="mt-1.5 text-xs text-slate-500"
-                      id="equipment-status-locked-description"
-                    >
-                      O status não pode ser alterado enquanto houver empréstimo
-                      ativo.
-                    </p>
+                  {isStatusEditable ? (
+                    <>
+                      <label
+                        className="mb-1.5 block text-sm font-medium text-slate-700"
+                        htmlFor="equipment-status"
+                      >
+                        Status
+                      </label>
+                      <select
+                        aria-describedby={statusDescription || undefined}
+                        aria-invalid={
+                          formError?.field === "status" || undefined
+                        }
+                        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
+                        disabled={isStatusLocked}
+                        id="equipment-status"
+                        onChange={(event) => {
+                          const selectedStatus = equipmentStatuses.find(
+                            (status) => status === event.target.value,
+                          );
+                          if (selectedStatus) {
+                            updateField("status", selectedStatus);
+                          } else {
+                            setFormError({
+                              field: "status",
+                              kind: "invalid",
+                              message: "Selecione um status válido.",
+                            });
+                          }
+                        }}
+                        value={values.status}
+                      >
+                        {equipmentStatuses.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                      {isStatusLocked && (
+                        <p
+                          className="mt-1.5 text-xs text-slate-500"
+                          id="equipment-status-locked-description"
+                        >
+                          O status não pode ser alterado enquanto houver
+                          empréstimo ativo.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                        Status
+                      </span>
+                      <p className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                        {values.status}
+                      </p>
+                    </>
                   )}
                 </>
               ) : (
@@ -394,17 +470,25 @@ export default function EquipmentForm({
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <button
-              className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-              onClick={onCancel}
+              className="h-10 rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+              onClick={handleCancel}
               type="button"
             >
               Cancelar
             </button>
             <button
-              className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
               type="submit"
             >
-              {isEditing ? "Salvar alterações" : "Cadastrar equipamento"}
+              {isSubmitting
+                ? isEditing
+                  ? "Salvando..."
+                  : "Cadastrando..."
+                : isEditing
+                  ? "Salvar alterações"
+                  : "Cadastrar equipamento"}
             </button>
           </div>
         </form>

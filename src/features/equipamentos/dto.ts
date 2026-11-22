@@ -5,3 +5,13 @@ export type EquipmentResponseDTO = {
   tipo: "NOTEBOOK" | "MONITOR" | "HEADSET";
   disponivel: boolean;
 };
+
+export type EquipmentCreateRequestDTO = Pick<
+  EquipmentResponseDTO,
+  "patrimonio" | "nome" | "tipo"
+>;
+
+export type EquipmentUpdateRequestDTO = Pick<
+  EquipmentResponseDTO,
+  "nome" | "tipo"
+>;
