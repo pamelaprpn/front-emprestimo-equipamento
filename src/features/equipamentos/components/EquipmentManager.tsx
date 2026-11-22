@@ -4,7 +4,9 @@ import { useState } from "react";
 import EquipmentForm from "@/features/equipamentos/components/EquipmentForm";
 import EquipmentTable from "@/features/equipamentos/components/EquipmentTable";
 import EquipmentToolbar from "@/features/equipamentos/components/EquipmentToolbar";
+import ApiEquipmentManager from "@/features/equipamentos/components/ApiEquipmentManager";
 import { useAppData } from "@/components/providers/AppDataProvider";
+import { equipmentDataSource } from "@/features/equipamentos/config/equipment-data-source";
 import { hasActiveLoanForEquipment } from "@/features/emprestimos/utils/loan-rules";
 import type {
   Equipment,
@@ -18,6 +20,14 @@ type EquipmentFormState =
   | null;
 
 export default function EquipmentManager() {
+  return equipmentDataSource === "api" ? (
+    <ApiEquipmentManager />
+  ) : (
+    <LocalEquipmentManager />
+  );
+}
+
+function LocalEquipmentManager() {
   const {
     equipment,
     loans,

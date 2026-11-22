@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import AppShell from "@/components/layout/AppShell";
 import { AppDataProvider } from "@/components/providers/AppDataProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import "@/styles/globals.css";
 
 const geistSans = Geist({
@@ -29,9 +30,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="min-h-screen antialiased">
-        <AppDataProvider>
-          <AppShell>{children}</AppShell>
-        </AppDataProvider>
+        <QueryProvider>
+          <AppDataProvider>
+            <AppShell>{children}</AppShell>
+          </AppDataProvider>
+        </QueryProvider>
       </body>
     </html>
   );

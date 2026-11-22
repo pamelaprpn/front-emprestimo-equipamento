@@ -11,7 +11,8 @@ type EquipmentToolbarProps = {
   status: EquipmentStatus | "Todos";
   onSearchChange: (value: string) => void;
   onStatusChange: (value: EquipmentStatus | "Todos") => void;
-  onAddEquipment: () => void;
+  onAddEquipment?: () => void;
+  showAddEquipment?: boolean;
 };
 
 export default function EquipmentToolbar({
@@ -20,6 +21,7 @@ export default function EquipmentToolbar({
   onSearchChange,
   onStatusChange,
   onAddEquipment,
+  showAddEquipment = true,
 }: EquipmentToolbarProps) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end sm:p-5">
@@ -75,14 +77,16 @@ export default function EquipmentToolbar({
         </select>
       </div>
 
-      <button
-        className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
-        onClick={onAddEquipment}
-        type="button"
-      >
-        <Plus aria-hidden="true" size={17} />
-        Novo equipamento
-      </button>
+      {showAddEquipment && onAddEquipment && (
+        <button
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          onClick={onAddEquipment}
+          type="button"
+        >
+          <Plus aria-hidden="true" size={17} />
+          Novo equipamento
+        </button>
+      )}
     </div>
   );
 }
