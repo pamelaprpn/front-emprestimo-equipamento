@@ -1,22 +1,111 @@
 "use client";
 
-import { PackageOpen } from "lucide-react";
+import axios from "axios";
+import { PackageOpen, Plus } from "lucide-react";
+import { useState } from "react";
+import ApiCollaboratorForm from "@/features/colaboradores/components/ApiCollaboratorForm";
 import { useCollaborators } from "@/features/colaboradores/hooks/useCollaborators";
+import { useCreateCollaborator } from "@/features/colaboradores/hooks/useCreateCollaborator";
+
+type CollaboratorApiErrorPayload = {
+  detail?: unknown;
+  message?: unknown;
+  mensagem?: unknown;
+};
+
+function getCreateErrorMessage(error: unknown): string {
+  if (axios.isAxiosError<CollaboratorApiErrorPayload>(error)) {
+    const apiMessage = [
+      error.response?.data?.mensagem,
+      error.response?.data?.message,
+      error.response?.data?.detail,
+    ].find(
+      (message): message is string =>
+        typeof message === "string" && message.trim().length > 0,
+    );
+
+    if (apiMessage) {
+      return apiMessage;
+    }
+
+    if (!error.response) {
+      return "Não foi possível conectar à API. Verifique a conexão e tente novamente.";
+    }
+  }
+
+  return "Não foi possível cadastrar o colaborador. Tente novamente.";
+}
 
 export default function ApiCollaboratorManager() {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const query = useCollaborators();
+  const createCollaborator = useCreateCollaborator();
   const collaborators = query.data ?? [];
+
+  function openCreateForm() {
+    setFeedback(null);
+    createCollaborator.reset();
+    setIsFormOpen(true);
+  }
+
+  function closeForm() {
+    if (!createCollaborator.isPending) {
+      setIsFormOpen(false);
+    }
+  }
+
+  async function submitCollaborator(values: {
+    name: string;
+    email: string;
+    cargo: string;
+  }): Promise<string | null> {
+    try {
+      const createdCollaborator = await createCollaborator.mutateAsync({
+        nome: values.name,
+        email: values.email,
+        cargo: values.cargo,
+      });
+
+      setFeedback(
+        `Colaborador "${createdCollaborator.nome}" cadastrado com sucesso.`,
+      );
+      setIsFormOpen(false);
+      return null;
+    } catch (error: unknown) {
+      return getCreateErrorMessage(error);
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Colaboradores
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          Consulte os colaboradores cadastrados na API.
-        </p>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            Colaboradores
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Consulte os colaboradores cadastrados na API.
+          </p>
+        </div>
+        <button
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          onClick={openCreateForm}
+          type="button"
+        >
+          <Plus aria-hidden="true" size={17} />
+          Novo colaborador
+        </button>
       </header>
+
+      {feedback && (
+        <p
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+          role="status"
+        >
+          {feedback}
+        </p>
+      )}
 
       {query.isError && (
         <section
@@ -108,6 +197,14 @@ export default function ApiCollaboratorManager() {
             </p>
           </div>
         </>
+      )}
+
+      {isFormOpen && (
+        <ApiCollaboratorForm
+          isSubmitting={createCollaborator.isPending}
+          onCancel={closeForm}
+          onSubmit={submitCollaborator}
+        />
       )}
     </div>
   );

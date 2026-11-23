@@ -4,3 +4,8 @@ export type CollaboratorResponseDTO = {
   email: string;
   cargo: string;
 };
+
+export type CollaboratorCreateRequestDTO = Pick<
+  CollaboratorResponseDTO,
+  "nome" | "email" | "cargo"
+>;
