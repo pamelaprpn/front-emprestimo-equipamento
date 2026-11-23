@@ -16,7 +16,9 @@ export default function CategoryInventory({
           <h3 className="text-base font-semibold text-slate-900">
             Inventário por categoria
           </h3>
-          <p className="mt-1 text-sm text-slate-500">Dados demonstrativos</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Equipamentos cadastrados por categoria
+          </p>
         </div>
         <Link
           aria-label="Ver equipamentos"
@@ -28,19 +30,25 @@ export default function CategoryInventory({
         </Link>
       </div>
       <ul className="mt-5 divide-y divide-slate-100">
-        {categories.map((category) => (
-          <li
-            className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
-            key={category.id}
-          >
-            <span className="text-sm font-medium text-slate-700">
-              {category.name}
-            </span>
-            <span className="whitespace-nowrap text-sm text-slate-500">
-              {category.quantity} itens
-            </span>
+        {categories.length === 0 ? (
+          <li className="py-4 text-sm text-slate-500">
+            Nenhum equipamento cadastrado.
           </li>
-        ))}
+        ) : (
+          categories.map((category) => (
+            <li
+              className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+              key={category.id}
+            >
+              <span className="text-sm font-medium text-slate-700">
+                {category.name}
+              </span>
+              <span className="whitespace-nowrap text-sm text-slate-500">
+                {category.quantity} itens
+              </span>
+            </li>
+          ))
+        )}
       </ul>
     </section>
   );

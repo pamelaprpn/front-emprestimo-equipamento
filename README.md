@@ -47,7 +47,7 @@ O projeto possui frontend desenvolvido com Next.js e integração com backend Ja
 - Resumo de empréstimos recentes.
 - Inventário por categoria.
 
-**Observação:** os dados apresentados no dashboard são fictícios e utilizados para demonstração. As telas de equipamentos, colaboradores e empréstimos consultam a API.
+O dashboard utiliza as fontes de dados configuradas independentemente para equipamentos, colaboradores e empréstimos, podendo operar com dados locais ou com a API REST.
 
 ## Tecnologias utilizadas
 

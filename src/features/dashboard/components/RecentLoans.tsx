@@ -27,7 +27,7 @@ export default function RecentLoans({ loans }: RecentLoansProps) {
             Empréstimos recentes
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Registros de demonstração
+            Registros mais recentes
           </p>
         </div>
         <Link
@@ -50,30 +50,41 @@ export default function RecentLoans({ loans }: RecentLoansProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {loans.map((loan) => (
-              <tr className="align-middle" key={loan.id}>
-                <td className="py-4 pr-4 font-medium text-slate-800">
-                  {loan.equipment}
-                </td>
-                <td className="py-4 pr-4 text-slate-600">
-                  <Link
-                    className="hover:text-slate-900 hover:underline"
-                    href="/colaboradores"
-                    prefetch={false}
-                  >
-                    {loan.collaborator}
-                  </Link>
-                </td>
-                <td className="whitespace-nowrap py-4 pr-4 text-slate-600">
-                  {loan.date}
-                </td>
-                <td className="py-4">
-                  <StatusBadge variant={statusVariants[loan.status]}>
-                    {loan.status}
-                  </StatusBadge>
+            {loans.length === 0 ? (
+              <tr>
+                <td
+                  className="py-8 text-center text-sm text-slate-500"
+                  colSpan={4}
+                >
+                  Nenhum empréstimo cadastrado.
                 </td>
               </tr>
-            ))}
+            ) : (
+              loans.map((loan) => (
+                <tr className="align-middle" key={loan.id}>
+                  <td className="py-4 pr-4 font-medium text-slate-800">
+                    {loan.equipment}
+                  </td>
+                  <td className="py-4 pr-4 text-slate-600">
+                    <Link
+                      className="hover:text-slate-900 hover:underline"
+                      href="/colaboradores"
+                      prefetch={false}
+                    >
+                      {loan.collaborator}
+                    </Link>
+                  </td>
+                  <td className="whitespace-nowrap py-4 pr-4 text-slate-600">
+                    {loan.date}
+                  </td>
+                  <td className="py-4">
+                    <StatusBadge variant={statusVariants[loan.status]}>
+                      {loan.status}
+                    </StatusBadge>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
